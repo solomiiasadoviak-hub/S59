@@ -85,6 +85,12 @@
     var c = h('input', { type: 'color', value: obj[key], oninput: function () { obj[key] = c.value.toUpperCase(); t.value = obj[key]; setDirty(true); } });
     return field(label, h('div', { class: 'color' }, c, t));
   }
+  function colorOpt(label, obj, key, placeholder) {
+    var t = h('input', { type: 'text', class: 'inp', value: obj[key] || '', placeholder: placeholder || 'як у дизайні', oninput: function () { obj[key] = t.value.trim(); if (/^#[0-9a-f]{6}$/i.test(t.value)) c.value = t.value; setDirty(true); } });
+    var c = h('input', { type: 'color', value: /^#[0-9a-f]{6}$/i.test(obj[key] || '') ? obj[key] : '#CDC7B2', oninput: function () { obj[key] = c.value.toUpperCase(); t.value = obj[key]; setDirty(true); } });
+    var x = h('button', { class: 'btn sm ico', type: 'button', title: 'Скинути', onclick: function () { obj[key] = ''; t.value = ''; setDirty(true); } }, '×');
+    return field(label, h('div', { class: 'color' }, c, t, x));
+  }
   function isVideo(u) { return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u || ''); }
   function preview(url) {
     var pv = h('div', { class: 'pv' });
@@ -598,13 +604,45 @@
   VIEWS.design = function () {
     var st = S.settings, th = st.theme, m = st.media;
     var order = h('div', { class: 'sec-order' });
+    if (!st.blockStyles || typeof st.blockStyles !== 'object') st.blockStyles = {};
+    var palette = th.colors;
+    function stylePanel(key) {
+      if (!st.blockStyles[key]) st.blockStyles[key] = {};
+      var b = st.blockStyles[key];
+      var swatches = h('div', { class: 'tools' }, h('span', { class: 'muted' }, 'Швидко:'),
+        [['bg', 'Основний'], ['bg2', 'Другий'], ['ink', 'Чорний'], ['sand', 'Пісочний'], ['stone', 'Сірий'], ['white', 'Білий']].map(function (pp) {
+          return h('button', { class: 'btn sm', type: 'button', title: palette[pp[0]], style: 'background:' + palette[pp[0]] + ';color:' + (pp[0] === 'sand' || pp[0] === 'white' || pp[0] === 'stone' ? '#1F1711' : '#CDC7B2'), onclick: function () {
+            b.bg = palette[pp[0]];
+            var light = pp[0] === 'sand' || pp[0] === 'white' || pp[0] === 'stone';
+            b.fg = light ? palette.bg : palette.sand; b.head = light ? palette.bg : palette.white;
+            setDirty(true); drawOrder();
+          } }, pp[1]);
+        }));
+      return h('div', { class: 'card', style: 'margin:6px 0 4px;background:#FCFBF8' },
+        swatches,
+        h('div', { class: 'grid3 mt' }, colorOpt('Фон блоку', b, 'bg'), colorOpt('Колір тексту', b, 'fg'), colorOpt('Колір заголовків', b, 'head')),
+        h('div', { class: 'grid3 mt' },
+          tf('Відступ зверху, px', b, 'padTop', { type: 'text', placeholder: 'авто', help: 'Наприклад 40. Порожньо — як у дизайні' }),
+          tf('Відступ знизу, px', b, 'padBottom', { type: 'text', placeholder: 'авто' }),
+          h('div', { class: 'f' }, h('span', { class: 'lbl' }, ' '), h('button', { class: 'btn', type: 'button', onclick: function () { st.blockStyles[key] = {}; setDirty(true); drawOrder(); } }, 'Скинути стиль блоку'))));
+    }
+    var openStyle = {};
+    function row(key, name, i, movable) {
+      var styled = st.blockStyles[key] && Object.keys(st.blockStyles[key]).some(function (k) { return st.blockStyles[key][k]; });
+      var s0 = movable ? st.homeSections[i] : null;
+      var r = h('div', { class: 'so' },
+        movable ? toggle('', s0, 'on') : h('span', { style: 'width:38px' }),
+        h('span', { class: 'nm' }, name, styled ? h('span', { class: 'muted' }, ' · свій стиль') : null),
+        h('button', { class: 'btn sm', onclick: function () { openStyle[key] = !openStyle[key]; drawOrder(); } }, openStyle[key] ? 'Згорнути' : 'Колір і відступи'),
+        movable ? h('button', { class: 'btn sm ico', disabled: i === 0, onclick: function () { st.homeSections.splice(i - 1, 0, st.homeSections.splice(i, 1)[0]); setDirty(true); drawOrder(); } }, '↑') : null,
+        movable ? h('button', { class: 'btn sm ico', disabled: i === st.homeSections.length - 1, onclick: function () { st.homeSections.splice(i + 1, 0, st.homeSections.splice(i, 1)[0]); setDirty(true); drawOrder(); } }, '↓') : null);
+      add(order, r);
+      if (openStyle[key]) add(order, stylePanel(key));
+    }
     function drawOrder() {
       order.innerHTML = '';
-      st.homeSections.forEach(function (s, i) {
-        add(order, h('div', { class: 'so' }, toggle('', s, 'on'), h('span', { class: 'nm' }, SECTION_NAMES[s.key] || s.key),
-          h('button', { class: 'btn sm ico', disabled: i === 0, onclick: function () { st.homeSections.splice(i - 1, 0, st.homeSections.splice(i, 1)[0]); setDirty(true); drawOrder(); } }, '↑'),
-          h('button', { class: 'btn sm ico', disabled: i === st.homeSections.length - 1, onclick: function () { st.homeSections.splice(i + 1, 0, st.homeSections.splice(i, 1)[0]); setDirty(true); drawOrder(); } }, '↓')));
-      });
+      row('hero', 'Перший екран (завжди зверху)', -1, false);
+      st.homeSections.forEach(function (sx, i) { row(sx.key, SECTION_NAMES[sx.key] || sx.key, i, true); });
     }
     drawOrder();
     var fp = fontPreview(th.fonts);
@@ -627,20 +665,33 @@
         h('div', { class: 'grid2' },
           mediaField('Логотип', th, 'logo', 'image', 'Найкраще — SVG або PNG з прозорим фоном'),
           mediaField('Перший екран — відео (необов’язково, стає першим у колажі)', m, 'heroVideo', 'video'),
-          mediaField('Фото з логотипом на шкірі (блок «Коротко про нас»)', m, 'brandImage', 'image'),
+          mediaField('Фото з логотипом на шкірі (блок «Коротко про нас»)', m, 'brandImage', 'any'),
           mediaField('Фото для «Філософія» та «Про нас»', m, 'aboutImage', 'any'),
-          mediaField('Фото засновниці (сторінка «Про нас»)', m, 'founderImage', 'image'),
+          mediaField('Фото засновниці (сторінка «Про нас»)', m, 'founderImage', 'any'),
           mediaField('Фон фінального заклику (необов’язково)', m, 'ctaImage', 'any'),
           mediaField('Картинка для соцмереж (коли діляться посиланням)', m, 'ogImage', 'image'))),
       h('div', { class: 'card' }, h('h2', {}, 'Колаж першого екрана та галерея'),
         h('p', { class: 'hint' }, 'Перший екран показує колаж із 5 фото (перше — найбільше). Галерея — мозаїка «Емоції, а не декорації». Порядок змінюється стрілкою «‹».'),
         mediaList('Колаж першого екрана (до 5 фото)', m, 'heroCollage'),
         h('div', { class: 'mt' }, mediaList('Галерея (найкраще 12 фото)', m, 'gallery'))),
+      h('div', { class: 'card' }, h('h2', {}, 'Маленькі фото'),
+        h('p', { class: 'hint' }, 'Невеликі фото, що «накладаються» на блоки: на першому екрані, у смузі з фразою, у блоках «Про нас» та «Етапи». Можна замінити на фото або відео, прибрати окреме (×) або вимкнути всі одразу.'),
+        toggle('Показувати маленькі фото на сайті', th, 'smallPhotos'),
+        h('div', { class: 'grid2 mt' },
+          mediaField('Перший екран — справа', m.small || (m.small = {}), 'heroA', 'any'),
+          mediaField('Перший екран — внизу зліва', m.small, 'heroB', 'any'),
+          mediaField('Смуга з фразою', m.small, 'band', 'any'),
+          mediaField('Блок «Коротко про нас»', m.small, 'about', 'any'),
+          mediaField('Блок «Етапи роботи»', m.small, 'process', 'any'))),
       h('div', { class: 'card' }, h('h2', {}, 'Фото послуг'), h('p', { class: 'hint' }, 'Фото або відео для карток послуг і першого екрана сторінки кожної послуги. Без фото картка буде темною з текстом.'),
         h('div', { class: 'grid2' }, S.slugs.map(function (s) { return mediaField(s.title, m.serviceImages, s.slug, 'any'); }))),
-      h('div', { class: 'card' }, h('h2', {}, 'Блоки головної сторінки'), h('p', { class: 'hint' }, 'Вмикайте, вимикайте та змінюйте порядок блоків.'), order),
+      h('div', { class: 'card' }, h('h2', {}, 'Відступи та анімація'),
+        h('div', { class: 'grid3' },
+          field('Відступи між блоками (для всього сайту)', select(th, 'spacing', [['compact', 'Компактно'], ['normal', 'Звичайно'], ['airy', 'Багато повітря']])),
+          h('div', { class: 'f' }, h('span', { class: 'lbl' }, 'Анімація при прокручуванні'), toggle('увімкнена (поява блоків, фото, лінія прокрутки)', th, 'animations')))),
+      h('div', { class: 'card' }, h('h2', {}, 'Блоки головної сторінки'), h('p', { class: 'hint' }, 'Вмикайте, вимикайте та змінюйте порядок блоків. Кнопка «Колір і відступи» — свій фон, колір тексту й заголовків та відступи зверху/знизу для конкретного блоку.'), order),
       h('div', { class: 'card' }, h('h2', {}, 'Інше'),
-        h('div', { style: 'display:grid;gap:12px' }, toggle('Кнопка WhatsApp у кутку екрана', st.contacts, 'showWhatsappButton'), toggle('Показувати повідомлення про cookies', st, 'cookieBanner')),
+        h('div', { style: 'display:grid;gap:12px' }, field('Плаваюча кнопка в кутку екрана', select(st.contacts, 'floatButton', [['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['phone', 'Дзвінок на телефон'], ['none', 'Не показувати']], function () { st.contacts.showWhatsappButton = true; }), 'Номер і Telegram беруться з розділу «Контакти».'), toggle('Показувати повідомлення про cookies', st, 'cookieBanner')),
         h('div', { class: 'mt' }, tf('Власний CSS (для дизайнера)', th, 'customCss', { area: true, help: 'Необов’язково. Додається в кінці стилів сайту.' }))),
       savebar(saveSettings)]);
   };
@@ -704,6 +755,7 @@
         tf('WhatsApp (лише цифри з кодом країни)', c, 'whatsapp', { placeholder: '48512479118' }),
         tf('Email', c, 'email', { type: 'email', placeholder: 'hello@...' }),
         tf('Telegram (необов’язково)', c, 'telegram', { placeholder: '@username' }),
+        field('Плаваюча кнопка в кутку екрана', select(c, 'floatButton', [['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['phone', 'Дзвінок на телефон'], ['none', 'Не показувати']], function () { c.showWhatsappButton = true; })),
         tf('Instagram — посилання', c, 'instagramUrl'),
         tf('Instagram — нікнейм', c, 'instagramHandle'))),
       h('div', { class: 'card' }, h('h2', {}, 'Дані компанії'), h('p', { class: 'hint' }, 'Для футера та юридичних сторінок (у Польщі бажано вказати назву, NIP та адресу).'),

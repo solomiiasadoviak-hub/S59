@@ -20,6 +20,12 @@ const plain = (s) => String(s ?? '').replace(/\*/g, '');
 const tr = (obj, lang) => (obj && typeof obj === 'object' ? obj[lang] || obj.en || Object.values(obj).find(Boolean) || '' : obj || '');
 const pad = (n) => String(n).padStart(2, '0');
 const attr = (s) => esc(s);
+const ICON = {
+  out: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h8v8M13 3 3 13" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>',
+  whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.6 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z"/></svg>',
+  telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.5 13.2 1.8 11.7c-1-.3-1-1 .2-1.5l18.5-7.1c.9-.3 1.6.2 1.4 1.2Z"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2Z"/></svg>',
+};
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u || '');
 
 function fontsHref(f) {
@@ -63,12 +69,13 @@ ${og ? `<meta property="og:image" content="${attr(og.startsWith('http') ? og : b
 <meta name="theme-color" content="${attr(col.bg)}">
 <link rel="icon" href="${attr(th.logo)}">
 ${href ? `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="${attr(href)}">` : ''}
-<style>:root{--bg:${col.bg};--bg2:${col.bg2};--ink:${col.ink};--sand:${col.sand};--stone:${col.stone};--white:${col.white};--fh:${fh};--fb:${fb};--hcase:${th.headingCase === 'none' ? 'none' : 'uppercase'};--hscale:${Number(th.headingScale) || 1};--logo-h:${Number(th.logoHeight) || 56}px}</style>
+<style>:root{--bg:${col.bg};--bg2:${col.bg2};--ink:${col.ink};--sand:${col.sand};--stone:${col.stone};--white:${col.white};--fh:${fh};--fb:${fb};--hcase:${th.headingCase === 'none' ? 'none' : 'uppercase'};--hscale:${Number(th.headingScale) || 1};--logo-h:${Number(th.logoHeight) || 56}px;--sp:${{ compact: 0.6, normal: 0.8, airy: 1 }[th.spacing] || 0.8}}</style>
 <link rel="stylesheet" href="/assets/css/site.css?v=${ctx.version}">
 ${th.customCss ? `<style>${th.customCss.replace(/<\/style/gi, '')}</style>` : ''}
 ${s.seo.customHead || ''}
 </head>
-<body>
+<body class="${th.animations === false ? 'no-anim' : 'anim'}">
+${th.animations === false ? '' : '<div class="progress" aria-hidden="true"><span id="progress"></span></div>'}
 ${ctx.preview ? `<div class="pbar">Ви бачите сайт як адміністратор: чернетки позначені «Чернетка» і відвідувачам не показуються · <a href="/admin">Адмін-панель</a></div>` : ''}
 <a class="skip" href="#main">${esc(c.ui.skip)}</a>
 <header class="hdr" id="hdr">
@@ -97,7 +104,7 @@ ${ctx.preview ? `<div class="pbar">Ви бачите сайт як адміні�
 ${body}
 </main>
 ${footer(ctx)}
-${s.contacts.showWhatsappButton && s.contacts.whatsapp ? `<a class="wa" href="https://wa.me/${attr(String(s.contacts.whatsapp).replace(/\D/g, ''))}" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.6 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z"/></svg></a>` : ''}
+${floatButton(ctx)}
 ${s.cookieBanner ? `<div class="cookie" id="cookie" hidden><p>${esc(c.ui.cookieText)} <a href="/${lang}/cookie-policy">${esc(c.footer.cookies)}</a></p><button class="btn btn--solid btn--sm" id="cookieOk">${esc(c.ui.cookieAccept)}</button></div>` : ''}
 <script src="/assets/js/site.js?v=${ctx.version}" defer></script>
 </body>
@@ -199,6 +206,19 @@ function packageCards(ctx, full) {
     </article>`
     )
     .join('')}</div>`;
+}
+
+function floatButton(ctx) {
+  const k = ctx.s.contacts;
+  const type = k.showWhatsappButton === false ? 'none' : k.floatButton || 'whatsapp';
+  const digits = (v) => String(v || '').replace(/\D/g, '');
+  let href = '';
+  if (type === 'whatsapp' && (k.whatsapp || k.phone)) href = 'https://wa.me/' + digits(k.whatsapp || k.phone);
+  if (type === 'telegram' && k.telegram) href = 'https://t.me/' + String(k.telegram).replace(/^@|https?:\/\/t\.me\//g, '');
+  if (type === 'phone' && k.phone) href = 'tel:+' + digits(k.phone);
+  if (!href) return '';
+  const label = { whatsapp: 'WhatsApp', telegram: 'Telegram', phone: 'Call' }[type];
+  return `<a class="wa wa--${type}" href="${attr(href)}"${type === 'phone' ? '' : ' target="_blank" rel="noopener"'} aria-label="${label}">${ICON[type]}</a>`;
 }
 
 function navItems(ctx) {
@@ -326,7 +346,7 @@ function galleryBlock(ctx, imgs, head) {
   const k = ctx.s.contacts;
   return `<section class="sec sec--ink">
   <div class="wrap">
-    ${head ? `<div class="split split--head"><div>${eyebrow(head.eyebrow)}<h2 class="h-l">${inline(head.title)}</h2></div>${k.instagramUrl ? `<p class="lead"><a class="link" href="${attr(k.instagramUrl)}" target="_blank" rel="noopener">${esc(head.caption)} · @${esc(k.instagramHandle)} ↗</a></p>` : ''}</div>` : ''}
+    ${head ? `<div class="split split--head"><div>${eyebrow(head.eyebrow)}<h2 class="h-l">${inline(head.title)}</h2></div>${k.instagramUrl ? `<p class="lead"><a class="link link--ico" href="${attr(k.instagramUrl)}" target="_blank" rel="noopener">${esc(head.caption)} · @${esc(k.instagramHandle)} ${ICON.out}</a></p>` : ''}</div>` : ''}
     <div class="gal">${imgs.map((g, i) => (isVideo(g) ? `<div class="gal__i gal__i--${i % 6}">${mediaTag(g)}</div>` : `<a class="gal__i gal__i--${i % 6}" href="${attr(g)}" data-lightbox>${mediaTag(g)}</a>`)).join('')}</div>
   </div>
 </section>`;
@@ -340,6 +360,22 @@ function marquee(text, cls = '') {
 }
 
 /* ---------------- pages ---------------- */
+/* Each home block can override background, text and heading colours and its top/bottom spacing (admin → Дизайн). */
+function blockWrap(ctx, key, html) {
+  if (!html) return '';
+  const st = (ctx.s.blockStyles || {})[key] || {};
+  const css = [];
+  const data = [];
+  const color = (v) => /^#[0-9a-f]{3,8}$/i.test(String(v || '').trim()) ? String(v).trim() : '';
+  const px = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v)) ? '' : Math.max(0, Math.min(400, Number(v))) + 'px');
+  if (color(st.bg)) { css.push('--blk-bg:' + color(st.bg)); data.push('data-bg'); }
+  if (color(st.fg)) { css.push('--blk-fg:' + color(st.fg)); data.push('data-fg'); }
+  if (color(st.head)) { css.push('--blk-hd:' + color(st.head)); data.push('data-hd'); }
+  if (px(st.padTop)) { css.push('--blk-pt:' + px(st.padTop)); data.push('data-pt'); }
+  if (px(st.padBottom)) { css.push('--blk-pb:' + px(st.padBottom)); data.push('data-pb'); }
+  return `<div class="blk" id="b-${attr(key)}" ${data.join(' ')}${css.length ? ` style="${css.join(';')}"` : ''}>${html}</div>`;
+}
+
 function home(ctx) {
   const { lang, c, s } = ctx;
   const h = c.home;
@@ -355,11 +391,12 @@ function home(ctx) {
       <span class="scard__t"><sup>${pad(i + 1)}</sup>${esc(sv.title)}</span>
       <span class="scard__d">${esc(sv.short)}</span></a>`;
 
+  const small = (k) => (s.theme.smallPhotos === false ? '' : (m.small || {})[k] || '');
   const blocks = {
     statement: () => `<section class="band">
       <div class="wrap band__in">
         <p class="band__text">${inline(h.statement && h.statement.text)}</p>
-        ${g[0] ? `<figure class="band__pic">${mediaTag(g[0])}</figure>` : ''}
+        ${small('band') ? `<figure class="band__pic">${mediaTag(small('band'))}</figure>` : ''}
       </div>
     </section>`,
     about: () => `<section class="split2">
@@ -370,7 +407,7 @@ function home(ctx) {
         <p class="split2__text">${inline(h.about.text)}</p>
         <ul class="lines">${c.services.map((sv) => `<li><a href="/${lang}/services/${attr(sv.slug)}">${esc(sv.title)}</a></li>`).join('')}</ul>
         <a class="arrow-link" href="/${lang}/about"><span>⟶</span> <em>${esc(h.about.link)}</em></a>
-        ${g[1] ? `<figure class="tilt tilt--r">${mediaTag(g[1])}</figure>` : ''}
+        ${small('about') ? `<figure class="tilt tilt--r">${mediaTag(small('about'))}</figure>` : ''}
       </div>
     </section>`,
     whatWeDo: () => `<section class="svc3">
@@ -400,7 +437,7 @@ function home(ctx) {
         <ol class="steps3">${h.process.items.map((it, i) => `<li><sup>${pad(i + 1)}</sup><div><em>${esc(it.title)}</em><p>${inline(it.text)}</p></div></li>`).join('')}</ol>
         <a class="arrow-link" href="/${lang}/approach"><span>⟶</span> <em>${esc(h.process.cta)}</em></a>
       </div>
-      <div class="split2__media">${mediaTag(pic(3))}${g[5] ? `<figure class="tilt tilt--l">${mediaTag(g[5])}</figure>` : ''}</div>
+      <div class="split2__media">${mediaTag(pic(3))}${small('process') ? `<figure class="tilt tilt--l">${mediaTag(small('process'))}</figure>` : ''}</div>
     </section>`,
     gallery: () => galleryBlock(ctx, g, h.gallery),
     testimonials: () => testimonialsBlock(ctx, h.testimonials),
@@ -446,14 +483,14 @@ function home(ctx) {
         <p class="h3__lead">${inline(h.hero.subtitle)}</p>
         <div class="btns">${btn(`/${lang}/enquire`, h.hero.ctaPrimary, 'dark')}${btn(`/${lang}/portfolio`, h.hero.ctaSecondary, 'line-dark')}</div>
       </div>
-      ${pic(1) ? `<figure class="h3__float h3__float--a">${mediaTag(pic(1), '', false)}</figure>` : ''}
-      ${pic(2) ? `<figure class="h3__float h3__float--b">${mediaTag(pic(2), '', false)}</figure>` : ''}
+      ${small('heroA') ? `<figure class="h3__float h3__float--a">${mediaTag(small('heroA'), '', false)}</figure>` : ''}
+      ${small('heroB') ? `<figure class="h3__float h3__float--b">${mediaTag(small('heroB'), '', false)}</figure>` : ''}
     </div>
     <div class="h3__media">${isVideo(big) ? `<video src="${attr(big)}" autoplay muted loop playsinline${m.heroImage ? ` poster="${attr(m.heroImage)}"` : ''}></video>` : `<img src="${attr(big)}" alt="" fetchpriority="high">`}</div>
   </section>
   ${marquee(h.marquee)}`;
 
-  const body = hero + s.homeSections.filter((x) => x.on && blocks[x.key]).map((x) => blocks[x.key]()).join('\n');
+  const body = blockWrap(ctx, 'hero', hero) + s.homeSections.filter((x) => x.on && blocks[x.key]).map((x) => blockWrap(ctx, x.key, blocks[x.key]())).join('\n');
   return layout(ctx, { title: '', description: h.seo.description, body, path: '/', titleOverride: h.seo.title, ogImage: m.heroImage });
 }
 
@@ -657,7 +694,7 @@ function enquire(ctx, q) {
         <label class="fld"><span>${esc(f.vision)} *</span><textarea name="vision" rows="5" required placeholder="${attr(f.visionPlaceholder)}"></textarea></label>
         ${sel('source', f.source, f.sourceOptions, '', false)}
       </fieldset>
-      <label class="consent"><input type="checkbox" name="consent" value="yes" required><span>${esc(f.consent)} <a href="/${lang}/privacy-policy" target="_blank">↗</a></span></label>
+      <label class="consent"><input type="checkbox" name="consent" value="yes" required><span>${esc(f.consent)} <a href="/${lang}/privacy-policy" target="_blank">${ICON.out}</a></span></label>
       <p class="form__err" id="formErr" hidden></p>
       <button class="btn btn--solid" type="submit" data-sending="${attr(c.ui.sending)}">${esc(f.submit)}</button>
       <p class="small muted">${esc(f.note)}</p>
